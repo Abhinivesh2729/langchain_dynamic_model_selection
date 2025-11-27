@@ -4,6 +4,7 @@ from pathlib import Path
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.tools import tool
 from langchain.agents import create_agent
+from langchain.agents.middleware import ModelRequest, ModelResponse, wrap_model_call
 
 #add project root to Python path
 project_root = Path(__file__).parent.parent
@@ -45,12 +46,25 @@ def get_weather(city: str) -> str:
     """Get weather for the given city"""
     return f"The {city} is very likly to have thunder stroam today, now it seems pre rain"
 
+#dynamic model selection
+@wrap_model_call
+def dynamic_model_selection(request: ModelRequest, handler) -> ModelResponse:
+
+    if( len(request.state["messages"]) > 2 ):
+        print("Using Advance Model")
+        model = advance_model
+    else:
+        print("Using Basic Model")
+        model = basic_model
+    
+    return handler(request.override(model=model))
 
 #agent
 
 agent = create_agent(
     model = basic_model,
     tools = [get_user_location, get_weather],
+    middleware = [dynamic_model_selection],
     system_prompt = "You have been provided with two tools, use them wisely to answer the user query, use the get_user_location tool to get the user location and get the user id from the user input and use get_weather function to get the weather data"
 )
 
