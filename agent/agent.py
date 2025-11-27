@@ -2,6 +2,9 @@ import os
 import sys
 from pathlib import Path
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.tools import tool
+from langchain.agents import create_agent
+
 #add project root to Python path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -31,3 +34,34 @@ advance_model = ChatGoogleGenerativeAI(
 
 #tools
 
+@tool
+def get_user_location(userId: str) -> str:
+    """Get the location of the user from the userId"""
+    return f"The user {userId} is in Erode city"
+
+
+@tool
+def get_weather(city: str) -> str:
+    """Get weather for the given city"""
+    return f"The {city} is very likly to have thunder stroam today, now it seems pre rain"
+
+
+#agent
+
+agent = create_agent(
+    model = basic_model,
+    tools = [get_user_location, get_weather],
+    system_prompt = "You have been provided with two tools, use them wisely to answer the user query, use the get_user_location tool to get the user location and get the user id from the user input and use get_weather function to get the weather data"
+)
+
+response = agent.invoke(
+   {
+       "messages": [
+           {"role": "user",
+            "content": "What is the weather in my location, my user id is 1"
+            },
+       ]
+   }
+)
+
+print(response["messages"][-1].content)
